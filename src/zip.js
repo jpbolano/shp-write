@@ -17,12 +17,11 @@ module.exports = function (
 
   var prj = (options && options.prj) ? options.prj : defaultPrj;
 
-  [
-    geojson.point(gj),
-    geojson.line(gj),
-    geojson.polygon(gj),
-    geojson.multipolygon(gj),
-    geojson.multiline(gj),
+  [geojson.point(gj), 
+   geojson.pointZ(gj), 
+   geojson.line(gj), geojson.lineZ(gj), 
+   geojson.polygon(gj), 
+   geojson.polygonZ(gj)
   ].forEach(function (l) {
     if (l.geometries.length && l.geometries[0].length) {
       write(
