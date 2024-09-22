@@ -1,56 +1,56 @@
-module.exports.point = justType("Point", "POINT");
-module.exports.line = justType("LineString", "POLYLINE");
-module.exports.multiline = justType("MultiLineString", "POLYLINE");
-module.exports.polygon = justType("Polygon", "POLYGON");
-module.exports.multipolygon = justType("MultiPolygon", "POLYGON");
+module.exports.point = justType('Point', 'POINT', false);
+module.exports.pointZ = justType('Point', 'POINTZ', true);
+module.exports.line = justType('LineString', 'POLYLINE', false);
+module.exports.lineZ = justType('LineString', 'POLYLINEZ', true);
+module.exports.polygon = justType('Polygon', 'POLYGON', false);
+module.exports.polygonZ = justType('Polygon', 'POLYGONZ', true);
 
-/**
- * Generate a function that returns an object with the geometries, properties, and type of the given GeoJSON type
- * @param {string} type the GeoJSON type
- * @param {string} TYPE the Shapefile type
- * @returns {(gj: { features: Feature[] }) => { geometries: number[] | number[][] | number[][][] | number[][][][], properties: {Object.<string, string>}, type: string }}
- */
-function justType(gjType, shpType) {
-  return function (gj) {
-    var oftype = gj.features.filter(isType(gjType));
-    return {
-      geometries: shpType === 'POLYLINE' ? [oftype.map(justCoords)] : oftype.map(justCoords),
-      properties: oftype.map(justProps),
-      type: shpType,
+function justType(type, TYPE, just3d) {
+    return function(gj) {
+        var ofType = gj.features.filter(isType(type));
+        var ofDimension = ofType.filter(isOfDimension(TYPE, just3d));
+
+        return {
+            geometries: (TYPE === 'POLYLINE' || TYPE === 'POLYLINEZ' ||
+                         TYPE === 'POLYGON'  || TYPE === 'POLYGONZ') ?
+                [ofDimension.map(justCoords)] :
+                ofDimension.map(justCoords),
+            properties: ofDimension.map(justProps),
+            type: TYPE
+        };
     };
-  };
 }
 
-/**
- * 
- * @param {Feature} feature The feature to get the coordinates from
- * @returns {number[] | number[][] | number[][][] | number[][][][]}
- */
-function justCoords(feature) {
-  return feature.geometry.coordinates;
+function justCoords(t) {
+    if (t.geometry.coordinates[0] !== undefined &&
+        t.geometry.coordinates[0][0] !== undefined &&
+        t.geometry.coordinates[0][0][0] !== undefined) {
+        // Unwraps rings
+        return t.geometry.coordinates[0];
+    } else {
+        return t.geometry.coordinates;
+    }
 }
 
-/**
- * 
- * @param {Feature} feature The feature to get the properties from 
- * @returns {Object.<string, string>}
- */
-function justProps(feature) {
-  return feature.properties;
+function justProps(t) {
+    return t.properties;
 }
 
-/**
- * Generate a function that filters features based on their geometry.type
- * @param {string | string[]} type the GeoJSON type to filter with
- * @returns {(f: Feature) => boolean} a function that returns true if the feature's type is in {@link type}
- */
-function isType(type) {
-  if (Array.isArray(type))
-    return function (f) {
-      return type.includes(f.geometry.type);
-    };
-  else
-    return function (f) {
-      return f.geometry.type === type;
-    };
+function isType(t) {
+    return function(f) { return f.geometry.type === t; };
+}
+
+function isOfDimension(TYPE, just3d) {
+    return function(f) {
+        var coordinates;
+        if (TYPE === 'POINT' || TYPE === 'POINTZ') {
+            coordinates = f.geometry.coordinates;
+        }
+        else {
+            coordinates = Array.isArray(f.geometry.coordinates[0][0]) ?
+                f.geometry.coordinates[0][0] :
+                f.geometry.coordinates[0];
+        }
+        return just3d ? coordinates.length === 3 : coordinates.length === 2;
+    }
 }
