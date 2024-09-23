@@ -1,4 +1,4 @@
-declare module "@mapbox/shp-write" {
+declare module "shp-write" {
   export type OGCGeometry =
     'NULL' |
     'POINT' |
